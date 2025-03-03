@@ -1,0 +1,26 @@
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.samReceiver)
+    id("io.github.gmazzo.gradle.multiapi")
+    id("maven-publish")
+}
+
+group = "org.test"
+version = "0.1.0"
+
+samWithReceiver.annotation(HasImplicitReceiver.class.name)
+
+gradlePlugin {
+    apiTargets("7.0", "8.1", "8.13")
+
+    plugins {
+        create("myPlugin") {
+            id = "org.test.myPlugin"
+            implementationClass = "org.test.MyPlugin"
+        }
+    }
+}
+
+testing.suites.withType(JvmTestSuite) {
+    useJUnitJupiter()
+}

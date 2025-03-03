@@ -1,5 +1,3 @@
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
-
 dependencyResolutionManagement {
     repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
     repositories {
@@ -10,3 +8,4 @@ dependencyResolutionManagement {
 rootProject.name = "gradle-multiapi-dev-plugin"
 
 includeBuild("plugin")
+include("demo-plugin")

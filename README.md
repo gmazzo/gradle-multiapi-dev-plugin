@@ -15,7 +15,15 @@ plugins {
     id("io.github.gmazzo.gradle.multiapi") version "<latest>" 
 }
 
-gradleTargets += listOf("7.0", "8.1", "8.13")
+gradlePlugin {
+    apiTargets("7.0", "8.1", "8.13")
+
+    plugins {
+        create("myPlugin") {
+            // configure your plugin here
+        }
+    }
+}
 ```
 For each declared, a dedicated `gradle$version` source will be created, by calling `java.registerFeature`. 
 Each variant will be decorated with [`org.gradle.plugin.api‑version` attribute](https://docs.gradle.org/current/userguide/variant_attributes.html#sec:gradle-plugins-default-attributes), 

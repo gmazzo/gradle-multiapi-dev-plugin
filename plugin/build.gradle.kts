@@ -2,8 +2,9 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.samReceiver)
     alias(libs.plugins.gradle.pluginPublish)
+    alias(libs.plugins.jacoco.testkit)
     alias(libs.plugins.publicationsReport)
-    jacoco
+    groovy
 }
 
 group = "io.github.gmazzo.gradle.multiapi"
@@ -23,7 +24,7 @@ gradlePlugin {
         create("java-gradle-multiapi-plugin") {
             id = "io.github.gmazzo.gradle.multiapi"
             displayName = name
-            implementationClass = "io.github.gmazzo.gradle.multiapi.JavaGradleMultiAPIPlugin"
+            implementationClass = "io.github.gmazzo.gradle.multiapi.GradleMultiAPIPluginDevelopmentPlugin"
             description = "Enables targeting multiple Gradle APIs in a Gradle Plugin"
             tags.addAll("gradle-api", "multiple", "plugin-development")
         }
@@ -32,6 +33,7 @@ gradlePlugin {
 
 dependencies {
     compileOnly(gradleKotlinDsl())
+    compileOnly(gradleTestKit())
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.params)
@@ -45,6 +47,7 @@ testing.suites.withType<JvmTestSuite> {
 }
 
 tasks.test {
+    environment("TEMP_DIR", temporaryDir)
     finalizedBy(tasks.jacocoTestReport)
 }
 

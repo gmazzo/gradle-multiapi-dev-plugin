@@ -5,51 +5,54 @@ package io.github.gmazzo.gradle.multiapi
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.FileCollectionDependency
+import org.gradle.api.attributes.Usage.JAVA_API
+import org.gradle.api.attributes.Usage.JAVA_RUNTIME
+import org.gradle.api.attributes.Usage.USAGE_ATTRIBUTE
 import org.gradle.api.attributes.java.TargetJvmEnvironment.STANDARD_JVM
 import org.gradle.api.attributes.java.TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE
 import org.gradle.api.attributes.plugin.GradlePluginApiVersion.GRADLE_PLUGIN_API_VERSION_ATTRIBUTE
+import org.gradle.api.capabilities.Capability
 import org.gradle.api.component.AdhocComponentWithVariants
-import org.gradle.api.file.FileCollection
-import org.gradle.api.file.SourceDirectorySet
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.plugins.ExtensionAware
-import org.gradle.api.plugins.JavaPlugin.JAR_TASK_NAME
-import org.gradle.api.plugins.JavaPlugin.PROCESS_RESOURCES_TASK_NAME
+import org.gradle.api.plugins.FeatureSpec
 import org.gradle.api.plugins.JavaPlugin.TEST_TASK_NAME
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.plugins.internal.DefaultJavaFeatureSpec
 import org.gradle.api.plugins.jvm.JvmTestSuite
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
-import org.gradle.internal.buildoption.InternalFlag
-import org.gradle.internal.buildoption.InternalOptions
+import org.gradle.api.tasks.SourceSetOutput
+import org.gradle.internal.component.external.model.ProjectDerivedCapability
 import org.gradle.kotlin.dsl.apply
-import org.gradle.kotlin.dsl.*
 import org.gradle.kotlin.dsl.create
-import org.gradle.kotlin.dsl.creating
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.getByName
 import org.gradle.kotlin.dsl.getValue
 import org.gradle.kotlin.dsl.named
-import org.gradle.kotlin.dsl.newInstance
-import org.gradle.kotlin.dsl.project
-import org.gradle.kotlin.dsl.property
 import org.gradle.kotlin.dsl.provideDelegate
+import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.the
 import org.gradle.plugin.devel.GradlePluginDevelopmentExtension
+import org.gradle.plugin.devel.tasks.PluginUnderTestMetadata
 import org.gradle.testing.base.TestingExtension
 import org.gradle.util.GradleVersion
-import javax.inject.Inject
 
-class GradleMultiAPIPluginDevelopmentPlugin @Inject constructor(
-    private val options: InternalOptions,
-) : Plugin<Project> {
+class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
+
+    private val minGradleVersion = GradleVersion.version("7.0")
 
     override fun apply(target: Project): Unit = with(target) {
+        check(GradleVersion.current() >= minGradleVersion) {
+            "This plugin requires Gradle $minGradleVersion or newer"
+        }
+
         apply(plugin = "java-gradle-plugin")
 
-        val extension = (the<GradlePluginDevelopmentExtension>() as ExtensionAware).extensions
-            .create<GradleMultiAPIPluginDevelopmentExtension>("apiTargets")
+        val extension = createExtension()
 
         val java = the<JavaPluginExtension>()
         val sourceSets = the<SourceSetContainer>()
@@ -58,9 +61,14 @@ class GradleMultiAPIPluginDevelopmentPlugin @Inject constructor(
         val main by sourceSets
         val test by sourceSets
 
-        removeRunningGradleAPIFromMain(main)
+        removeRunningGradleAPIFromMain(main, test)
         addMinGradleAPIToMain(main, test, extension)
         disableMainPublication(main)
+
+        val testClasspathTask = tasks.named<PluginUnderTestMetadata>("pluginUnderTestMetadata") {
+            delete(outputDirectory)
+            enabled = false // we'll produce one per variant
+        }
 
         extension.targetAPIs.all gradleVersion@{
             val featureName = "gradle${this@gradleVersion.version.replace("\\W".toRegex(), "")}"
@@ -70,15 +78,13 @@ class GradleMultiAPIPluginDevelopmentPlugin @Inject constructor(
             java.registerFeature(featureName) {
                 usingSourceSet(sourceSet)
 
-                afterEvaluate {
-                    capability("${project.group}", project.name, "${project.version}")
+                projectDerivedCapability(this)
 
-                    if (configurations.names.contains(main.sourcesElementsConfigurationName)) {
-                        withSourcesJar()
-                    }
-                    if (configurations.names.contains(main.javadocElementsConfigurationName)) {
-                        withJavadocJar()
-                    }
+                if (configurations.names.contains(main.sourcesElementsConfigurationName)) {
+                    withSourcesJar()
+                }
+                if (configurations.names.contains(main.javadocElementsConfigurationName)) {
+                    withJavadocJar()
                 }
             }
 
@@ -91,126 +97,150 @@ class GradleMultiAPIPluginDevelopmentPlugin @Inject constructor(
                     }
                 }
 
-                fun Configuration.standardJVM() = attributes {
+                fun Configuration.standardJVM(usage: String) = attributes {
+                    attribute(USAGE_ATTRIBUTE, objects.named(usage))
                     attribute(TARGET_JVM_ENVIRONMENT_ATTRIBUTE, objects.named(STANDARD_JVM))
                 }
-                getByName(sourceSet.apiElementsConfigurationName).standardJVM()
-                getByName(sourceSet.runtimeElementsConfigurationName).standardJVM()
+                getByName(sourceSet.apiElementsConfigurationName).standardJVM(JAVA_API)
+                getByName(sourceSet.runtimeElementsConfigurationName).standardJVM(JAVA_RUNTIME)
 
                 getByName(sourceSet.apiConfigurationName).extendsFrom(getByName(main.apiConfigurationName))
                 getByName(sourceSet.implementationConfigurationName).extendsFrom(getByName(main.implementationConfigurationName))
                 getByName(sourceSet.runtimeOnlyConfigurationName).extendsFrom(getByName(main.runtimeOnlyConfigurationName))
+                getByName(sourceSet.annotationProcessorConfigurationName).extendsFrom(getByName(main.annotationProcessorConfigurationName))
 
+                getByName(testSuite.sources.implementationConfigurationName).extendsFrom(getByName(sourceSet.implementationConfigurationName))
                 getByName(testSuite.sources.implementationConfigurationName).extendsFrom(getByName(test.implementationConfigurationName))
+                getByName(testSuite.sources.runtimeOnlyConfigurationName).extendsFrom(getByName(sourceSet.runtimeOnlyConfigurationName))
                 getByName(testSuite.sources.runtimeOnlyConfigurationName).extendsFrom(getByName(test.runtimeOnlyConfigurationName))
+                getByName(testSuite.sources.annotationProcessorConfigurationName).extendsFrom(getByName(test.annotationProcessorConfigurationName))
             }
 
             dependencies {
+                val apiProvider = extension.providers.map { it[this@gradleVersion] }
 
-                // makes tests to depends on main variant
-                testSuite.sources.implementationConfigurationName(provider {
-                    dependencies.project(path).also { dep ->
-                        dep.capabilities {
-                            requireCapability("${dep.group}:${dep.name}-$featureName:${dep.version}")
-                        }
-                    }
-                })
+                sourceSet.apiConfigurationName(apiProvider.map { it.api })
+                sourceSet.compileOnlyConfigurationName(main.output)
 
-                // configures gradle API dependencies for the variant
-                val apiProvider = objects.newInstance<GradleAPIClasspathProvider>(this@gradleVersion)
-
-                sourceSet.apiConfigurationName(apiProvider.api)
-                testSuite.sources.implementationConfigurationName(apiProvider.testKit)
+                testSuite.sources.implementationConfigurationName(apiProvider.map { it.testKit })
+                testSuite.sources.implementationConfigurationName(sourceSet.output)
+                testSuite.sources.implementationConfigurationName(test.output)
 
                 plugins.withId("kotlin") {
-                    sourceSet.compileOnlyConfigurationName(apiProvider.kotlinDSL)
-                    testSuite.sources.implementationConfigurationName(apiProvider.kotlinDSL)
+                    sourceSet.compileOnlyConfigurationName(apiProvider.map { it.kotlinDSL })
+                    testSuite.sources.implementationConfigurationName(apiProvider.map { it.kotlinDSL })
                 }
             }
 
-            fun SourceSet.from(other: SourceSet) {
-                this@from.java.srcDir(other.java)
-                this@from.resources.srcDir(other.resources)
-
-                plugins.withId("groovy") { this@from.groovy.srcDir(other.groovy) }
-                plugins.withId("kotlin") { this@from.kotlin.srcDir(other.kotlin) }
-
-            }
-            sourceSet.from(main)
-            testSuite.sources.from(test)
+            // makes main/test classes to be included in the variant source set
+            sourceSet.output.classesDirs(main.output.classesDirs)
+            testSuite.sources.output.classesDirs(test.output.classesDirs)
 
             tasks.named<Copy>(sourceSet.processResourcesTaskName) {
-                with(tasks.getByName<Copy>(PROCESS_RESOURCES_TASK_NAME))
+                with(tasks.getByName<Copy>(main.processResourcesTaskName))
             }
+
+            tasks.named<Copy>(testSuite.sources.processResourcesTaskName) {
+                with(tasks.getByName<Copy>(test.processResourcesTaskName))
+            }
+
+            val variantTestClasspathTask = tasks.register<PluginUnderTestMetadata>("pluginUnderTestMetadata${featureName.replaceFirstChar { it.uppercase() }}") {
+                outputDirectory.set(layout.buildDirectory.dir(name))
+                pluginClasspath
+                    .from(testClasspathTask.map { it.pluginClasspath })
+                    .from(sourceSet.output)
+            }
+            dependencies.add(testSuite.sources.runtimeOnlyConfigurationName, files(variantTestClasspathTask))
 
             tasks.named(TEST_TASK_NAME) {
                 dependsOn(testSuite)
             }
         }
 
-        tasks.named(JAR_TASK_NAME) {
-            enabled = false
-        }
         tasks.named(TEST_TASK_NAME) {
             enabled = false
         }
     }
 
-    private fun Project.removeRunningGradleAPIFromMain(main: SourceSet) = afterEvaluate {
+    @Suppress("UNCHECKED_CAST")
+    private fun Project.projectDerivedCapability(spec: FeatureSpec, name: String? = null) {
+        (DefaultJavaFeatureSpec::class.java.getDeclaredField("capabilities")
+            .apply { isAccessible = true }
+            .get(spec) as MutableSet<Capability>)
+            .add(ProjectDerivedCapability(this, name))
+    }
+
+    private fun Project.createExtension() =
+        (the<GradlePluginDevelopmentExtension>() as ExtensionAware).extensions.create(
+            GradleMultiAPIPluginDevelopmentExtension::class,
+            "apiTargets",
+            GradleMultiAPIPluginDevelopmentExtensionImpl::class,
+            minGradleVersion,
+        ) as GradleMultiAPIPluginDevelopmentExtensionImpl
+
+    private fun Project.removeRunningGradleAPIFromMain(main: SourceSet, test: SourceSet) = afterEvaluate {
         configurations.getByName(main.apiConfigurationName)
             .dependencies.remove(dependencies.gradleApi())
-
-        the<GradlePluginDevelopmentExtension>().testSourceSets.forEach {
-            configurations.getByName(it.implementationConfigurationName)
-                .dependencies.remove(dependencies.gradleTestKit())
-        }
+        configurations.getByName(test.implementationConfigurationName)
+            .dependencies.remove(dependencies.gradleTestKit())
     }
 
     private fun Project.addMinGradleAPIToMain(
         main: SourceSet,
         test: SourceSet,
-        extension: GradleMultiAPIPluginDevelopmentExtension,
+        extension: GradleMultiAPIPluginDevelopmentExtensionImpl,
     ) {
-        val minimumGradleAPI by configurations.creating
-        val minimumTestGradleAPI by configurations.creating { extendsFrom(minimumGradleAPI) }
+        val gradleApi = configurations.create("${main.compileOnlyConfigurationName}GradleApi")
+        val gradleTestApi = configurations.create("${test.compileOnlyConfigurationName}GradleApi") {
+            extendsFrom(gradleApi)
+        }
 
-        configurations.getByName(main.compileClasspathConfigurationName).extendsFrom(minimumGradleAPI)
-        configurations.getByName(test.compileClasspathConfigurationName).extendsFrom(minimumTestGradleAPI)
+        configurations.getByName(main.compileClasspathConfigurationName).extendsFrom(gradleApi)
+        configurations.getByName(test.compileClasspathConfigurationName).extendsFrom(gradleTestApi)
 
-        val minAPIProvider = objects.property<GradleAPIClasspathProvider>()
-            .value(provider {
-                check(extension.targetAPIs.size >= 2) {
-                    "At at least 2 target Gradle API versions must be declared at `gradlePlugins.apiTargets`"
-                }
+        plugins.withId("java-test-fixtures") {
+            val testFixtures by the<SourceSetContainer>()
 
-                val minVersion = extension.targetAPIs.min()
-
-                objects.newInstance<GradleAPIClasspathProvider>(minVersion)
-            })
-            .apply { finalizeValueOnRead() }
+            configurations.getByName(testFixtures.compileOnlyConfigurationName).extendsFrom(gradleTestApi)
+        }
 
         dependencies {
-            minimumGradleAPI(minAPIProvider.map { it.api })
-            minimumTestGradleAPI(minAPIProvider.map { it.testKit })
+            gradleApi(extension.minGradleAPI.map { it.api })
+            gradleTestApi(extension.minGradleAPI.map { it.testKit })
 
             plugins.withId("kotlin") {
-                minimumGradleAPI(minAPIProvider.map { it.kotlinDSL })
+                gradleApi(extension.minGradleAPI.map { it.kotlinDSL })
             }
         }
     }
 
-    private fun Project.disableMainPublication(main: SourceSet) {
+    private fun Project.disableMainPublication(main: SourceSet) = with(configurations) {
+        val apiElements = getByName(main.apiElementsConfigurationName)
+        val runtimeElements = getByName(main.runtimeElementsConfigurationName)
+
+        apiElements.isCanBeConsumed = false
+        runtimeElements.isCanBeConsumed = false
+
         components.named<AdhocComponentWithVariants>("java") {
             listOfNotNull(
-                configurations.getByName(main.apiElementsConfigurationName),
-                configurations.getByName(main.runtimeElementsConfigurationName),
-                configurations.findByName(main.sourcesElementsConfigurationName),
-                configurations.findByName(main.javadocElementsConfigurationName),
+                apiElements,
+                runtimeElements,
+                findByName(main.sourcesElementsConfigurationName),
+                findByName(main.javadocElementsConfigurationName),
             ).forEach { withVariantsFromConfiguration(it) { skip() } }
+        }
+
+        plugins.withId("maven-publish") {
+            afterEvaluate {
+                // we already know this multi variant approach is not Maven-compatible
+                the<PublishingExtension>().publications.named<MavenPublication>("pluginMaven") {
+                    suppressAllPomMetadataWarnings()
+                }
+            }
         }
     }
 
-    private val SourceSet.groovy get() = extensions.getByName<SourceDirectorySet>("groovy")
-    private val SourceSet.kotlin get() = extensions.getByName<SourceDirectorySet>("kotlin")
+    private fun SourceSetOutput.classesDirs(vararg from: Any) =
+        (classesDirs as ConfigurableFileCollection).from(*from)
 
 }

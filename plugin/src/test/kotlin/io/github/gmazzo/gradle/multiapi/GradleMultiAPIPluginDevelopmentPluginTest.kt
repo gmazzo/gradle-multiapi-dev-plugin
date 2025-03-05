@@ -7,11 +7,9 @@ import org.gradle.kotlin.dsl.the
 import org.gradle.plugin.devel.GradlePluginDevelopmentExtension
 import org.gradle.testfixtures.ProjectBuilder
 import org.gradle.testkit.runner.GradleRunner
-import org.gradle.util.GradleVersion
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.MethodSource
 import java.io.File
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -37,20 +35,15 @@ class GradleMultiAPIPluginDevelopmentPluginTest {
         }
     }
 
-    fun gradleVersions() = listOf(
-        "8.0",
-        GradleVersion.current().version,
-    )
-
-    @ParameterizedTest
-    @MethodSource("gradleVersions")
-    fun `demo project works`(gradleVersion: String) {
-        val projectDir = tempDir.resolve(gradleVersion).apply { deleteRecursively(); mkdirs() }
+    @Test
+    fun `demo project produces expected jars`() {
+        val projectDir = tempDir.apply { deleteRecursively(); mkdirs() }
 
         File("../gradle/libs.versions.toml").copyTo(projectDir.resolve("gradle/libs.versions.toml"))
         File("../demo-plugin").copyRecursively(projectDir)
 
-        projectDir.resolve("settings.gradle").writeText("""
+        projectDir.resolve("settings.gradle").writeText(
+            """
             plugins {
                 id("jacoco-testkit-coverage")
             }
@@ -60,15 +53,68 @@ class GradleMultiAPIPluginDevelopmentPluginTest {
                     mavenCentral()
                 }
             }
-        """.trimIndent())
+        """.trimIndent()
+        )
+
+        val jarsContentDir = projectDir.resolve("build/jars-content")
+
+        projectDir.resolve("build.gradle").appendText(
+            """
+            def jars = copySpec()
+            tasks.withType(Jar) { task ->
+                jars.from(zipTree(task.archiveFile)) {
+                    into(task.name) 
+                }
+            }
+            tasks.register("collectJarsContent", Copy) {
+                with(jars)
+                exclude("**/META-INF/MANIFEST.MF", "**/META-INF/*.kotlin_module")
+                into("$jarsContentDir")
+            }
+        """.trimIndent()
+        )
 
         GradleRunner.create()
             .withProjectDir(projectDir)
-            .withGradleVersion(gradleVersion)
             .withPluginClasspath()
-            .withArguments("build", "publishToMavenLocal", "-s")
+            .withArguments("build", "publishToMavenLocal", "collectJarsContent", "-s")
             .forwardOutput()
             .build()
+
+        val jarsContent = jarsContentDir.walkTopDown()
+            .filter { it.isFile }
+            .map { it.toRelativeString(jarsContentDir) }
+            .toSortedSet()
+
+        assertEquals(
+            sortedSetOf(
+                "gradle70Jar/org/test/Gradle70Helper.class",
+                "gradle70Jar/org/test/MyPlugin.class",
+                "gradle70Jar/org/test/MyPluginBase.class",
+                "gradle70Jar/META-INF/gradle-plugins/org.test.myPlugin.properties",
+                "gradle70Jar/gradle70res.txt",
+
+                "gradle81Jar/org/test/Gradle81Helper.class",
+                "gradle81Jar/org/test/MyPlugin\$DummyAction.class",
+                "gradle81Jar/org/test/MyPlugin\$doSpecificStuff$\$inlined\$the$1.class",
+                "gradle81Jar/org/test/MyPlugin.class",
+                "gradle81Jar/org/test/MyPluginBase.class",
+                "gradle81Jar/META-INF/gradle-plugins/org.test.myPlugin.properties",
+                "gradle81Jar/gradle81res.txt",
+
+                "gradle813Jar/org/test/Gradle813Helper.class",
+                "gradle813Jar/org/test/MyPlugin\$doSpecificStuff$\$inlined\$the$1.class",
+                "gradle813Jar/org/test/MyPlugin\$doSpecificStuff$\$inlined\$the$2.class",
+                "gradle813Jar/org/test/MyPlugin.class",
+                "gradle813Jar/org/test/MyPluginBase.class",
+                "gradle813Jar/META-INF/gradle-plugins/org.test.myPlugin.properties",
+                "gradle813Jar/gradle813res.txt",
+
+                "jar/META-INF/gradle-plugins/org.test.myPlugin.properties",
+                "jar/org/test/MyPluginBase.class",
+            ),
+            jarsContent
+        )
     }
 
 }

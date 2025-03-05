@@ -11,12 +11,16 @@ import org.gradle.util.GradleVersion
 import java.io.File
 import javax.inject.Inject
 
-abstract class GradleAPIClasspathProvider @Inject constructor(
-    private val project: Project,
+internal abstract class GradleAPIClasspathProvider @Inject constructor(
+    project: Project,
     private val fileCollectionFactory: FileCollectionFactory,
     private val temporaryFileProvider: TemporaryFileProvider,
     private val gradleVersion: GradleVersion,
 ) {
+
+    private val gradle = project.gradle
+
+    private val logger = project.logger
 
     private val workDirs by lazy { extractAPIs() }
 
@@ -33,11 +37,14 @@ abstract class GradleAPIClasspathProvider @Inject constructor(
         val kotlinDslFile = workDir.resolve("gradle-kotlin-dsl-${gradleVersion.version}.txt")
         val result = Triple(apiFile, testKitFile, kotlinDslFile)
 
-        if (apiFile.isValidClasspath && testKitFile.isValidClasspath && kotlinDslFile.isValidClasspath) {
+        if (!gradle.startParameter.isRerunTasks &&
+            apiFile.isValidClasspath &&
+            testKitFile.isValidClasspath &&
+            kotlinDslFile.isValidClasspath) {
             return result
         }
 
-        project.logger.lifecycle("Extracting Gradle ${gradleVersion.version} API")
+        logger.lifecycle("Extracting Gradle ${gradleVersion.version} API")
 
         val projectDir = workDir.resolve("work${gradleVersion.version}")
         projectDir.deleteRecursively()
@@ -46,17 +53,22 @@ abstract class GradleAPIClasspathProvider @Inject constructor(
         projectDir.resolve("settings.gradle.kts").createNewFile()
         projectDir.resolve("build.gradle.kts").writeText(
             """
-            file("$apiFile").writeText(configurations.detachedConfiguration(dependencies.gradleApi()).files.joinToString("\n"))
-            file("$testKitFile").writeText(configurations.detachedConfiguration(dependencies.gradleTestKit()).files.joinToString("\n"))
-            file("$kotlinDslFile").writeText(configurations.detachedConfiguration(gradleKotlinDsl()).files.joinToString("\n"))
+            fun File.writeClasspath(source: Dependency) =
+                writeText(configurations.detachedConfiguration(source).files.joinToString("\n"))
+                
+            file("$apiFile").writeClasspath(dependencies.gradleApi())
+            file("$testKitFile").writeClasspath(dependencies.gradleTestKit())
+            file("$kotlinDslFile").writeClasspath(gradleKotlinDsl())
             """.trimIndent()
         )
 
         GradleRunner.create()
             .withProjectDir(projectDir)
-            .withTestKitDir(project.gradle.gradleUserHomeDir)
+            .withTestKitDir(gradle.gradleUserHomeDir)
             .withGradleVersion(gradleVersion.version)
             .withArguments("-m")
+            .forwardStdOutput(projectDir.resolve("stdout.txt").writer())
+            .forwardStdError(projectDir.resolve("stderr.txt").writer())
             .build()
 
         projectDir.deleteRecursively()
@@ -68,7 +80,7 @@ abstract class GradleAPIClasspathProvider @Inject constructor(
         fileCollectionFactory.create(GradleClasspath(displayName, classpathFile))
 
     private val File.isValidClasspath
-        get() = isFile && useLines { it.map(::File).all(File::isFile) }
+        get() = isFile && useLines { lines -> lines.all { File(it).isFile } }
 
     class GradleClasspath(
         private val displayName: String,

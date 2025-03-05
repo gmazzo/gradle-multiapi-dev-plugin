@@ -25,14 +25,9 @@ gradlePlugin {
     }
 }
 ```
-For each declared, a dedicated `gradle$version` source will be created, by calling `java.registerFeature`. 
-Each variant will be decorated with [`org.gradle.plugin.api‑version` attribute](https://docs.gradle.org/current/userguide/variant_attributes.html#sec:gradle-plugins-default-attributes), 
-which will be used by the plugin to select the correct variant.
+For each declared, a dedicated `gradle<version>` source will be created (with a companion `gradle<version>Test` test suite)
 
-Project structure will look like:
-```plaintext
-src/main/java -> main common sources
-src/gradle7.0/java -> sources for Gradle 7.0
-src/gradle8.1/java -> sources for Gradle 8.1
-src/gradle8.13/java -> sources for Gradle 8.13
-```
+![Project Structure](README-structure.png)
+
+> [!NOTE]
+> `main` and `test` source sets will act as common shared code for all variants.

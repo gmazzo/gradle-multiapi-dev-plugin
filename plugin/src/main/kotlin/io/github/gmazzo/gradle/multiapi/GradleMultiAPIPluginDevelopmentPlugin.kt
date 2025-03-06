@@ -12,7 +12,6 @@ import org.gradle.api.attributes.java.TargetJvmEnvironment.STANDARD_JVM
 import org.gradle.api.attributes.java.TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE
 import org.gradle.api.attributes.plugin.GradlePluginApiVersion.GRADLE_PLUGIN_API_VERSION_ATTRIBUTE
 import org.gradle.api.capabilities.Capability
-import org.gradle.api.component.AdhocComponentWithVariants
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.FeatureSpec
@@ -70,6 +69,9 @@ class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
             enabled = false // we'll produce one per variant
         }
 
+        java.withSourcesJar()
+        java.withJavadocJar()
+
         extension.targetAPIs.all gradleVersion@{
             val featureName = "gradle${this@gradleVersion.version.replace("\\W".toRegex(), "")}"
             val sourceSet = sourceSets.maybeCreate(featureName)
@@ -80,12 +82,8 @@ class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
 
                 projectDerivedCapability(this)
 
-                if (configurations.names.contains(main.sourcesElementsConfigurationName)) {
-                    withSourcesJar()
-                }
-                if (configurations.names.contains(main.javadocElementsConfigurationName)) {
-                    withJavadocJar()
-                }
+                withSourcesJar()
+                withJavadocJar()
             }
 
             with(configurations) {
@@ -144,12 +142,13 @@ class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
                 with(tasks.getByName<Copy>(test.processResourcesTaskName))
             }
 
-            val variantTestClasspathTask = tasks.register<PluginUnderTestMetadata>("pluginUnderTestMetadata${featureName.replaceFirstChar { it.uppercase() }}") {
-                outputDirectory.set(layout.buildDirectory.dir(name))
-                pluginClasspath
-                    .from(testClasspathTask.map { it.pluginClasspath })
-                    .from(sourceSet.output)
-            }
+            val variantTestClasspathTask =
+                tasks.register<PluginUnderTestMetadata>("pluginUnderTestMetadata${featureName.replaceFirstChar { it.uppercase() }}") {
+                    outputDirectory.set(layout.buildDirectory.dir(name))
+                    pluginClasspath
+                        .from(testClasspathTask.map { it.pluginClasspath })
+                        .from(sourceSet.output)
+                }
             dependencies.add(testSuite.sources.runtimeOnlyConfigurationName, files(variantTestClasspathTask))
 
             tasks.named(TEST_TASK_NAME) {
@@ -215,21 +214,6 @@ class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
     }
 
     private fun Project.disableMainPublication(main: SourceSet) = with(configurations) {
-        val apiElements = getByName(main.apiElementsConfigurationName)
-        val runtimeElements = getByName(main.runtimeElementsConfigurationName)
-
-        apiElements.isCanBeConsumed = false
-        runtimeElements.isCanBeConsumed = false
-
-        components.named<AdhocComponentWithVariants>("java") {
-            listOfNotNull(
-                apiElements,
-                runtimeElements,
-                findByName(main.sourcesElementsConfigurationName),
-                findByName(main.javadocElementsConfigurationName),
-            ).forEach { withVariantsFromConfiguration(it) { skip() } }
-        }
-
         plugins.withId("maven-publish") {
             afterEvaluate {
                 // we already know this multi variant approach is not Maven-compatible

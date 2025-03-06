@@ -21,10 +21,4 @@ abstract class GradleMultiAPIPluginDevelopmentExtension {
         this.targetAPIs.addAll(targetAPIs)
     }
 
-    // for Groovy DSL
-    fun call(vararg args: String) = invoke(*args)
-
-    // for Groovy DSL
-    fun call(vararg args: GradleVersion) = invoke(*args)
-
 }

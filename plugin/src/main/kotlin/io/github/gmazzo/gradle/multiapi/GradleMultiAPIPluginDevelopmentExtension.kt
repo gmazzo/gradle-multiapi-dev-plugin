@@ -1,24 +1,18 @@
 package io.github.gmazzo.gradle.multiapi
 
-import org.gradle.api.DomainObjectSet
-import org.gradle.util.GradleVersion
+import org.gradle.api.NamedDomainObjectContainer
+import org.gradle.api.provider.Provider
 
-abstract class GradleMultiAPIPluginDevelopmentExtension {
+interface GradleMultiAPIPluginDevelopmentExtension {
 
-    abstract val targetAPIs: DomainObjectSet<GradleVersion>
+    val targetAPIs: NamedDomainObjectContainer<GradleAPITarget>
 
-    operator fun invoke(vararg targetAPIs: String) =
-        this(targetAPIs.toList())
+    val minGradleAPI: Provider<GradleAPITarget>
 
-    operator fun invoke(targetAPIs: Iterable<String>) =
-        this(targetAPIs.map(GradleVersion::version))
+    operator fun invoke(gradleVersion: String): GradleAPITarget
 
-    operator fun invoke(vararg targetAPIs: GradleVersion) =
-        this(targetAPIs.toList())
+    operator fun invoke(vararg gradleVersions: String): List<GradleAPITarget>
 
-    @JvmName("invokeGradleVersion")
-    operator fun invoke(targetAPIs: Iterable<GradleVersion>) {
-        this.targetAPIs.addAll(targetAPIs)
-    }
+    operator fun invoke(gradleVersions: Iterable<String>): List<GradleAPITarget>
 
 }

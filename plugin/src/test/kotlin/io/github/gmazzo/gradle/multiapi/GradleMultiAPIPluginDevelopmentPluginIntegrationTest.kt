@@ -79,25 +79,16 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
             .toSortedSet()
 
         assertEquals(
-            sortedSetOf(
-                "gradle70Jar/META-INF/gradle-plugins/org.test.myPlugin.properties",
-                "gradle70Jar/META-INF/services/org.test.MyPluginService",
-                "gradle70Jar/gradle70res.txt",
+            sortedSetOf("gradle70Jar/gradle70res.txt",
                 "gradle70Jar/org/test/Gradle70Helper.class",
-                "gradle70Jar/org/test/MyPlugin.class",
-                "gradle70Jar/org/test/MyPluginService.class",
                 "gradle70Jar/org/test/MyPluginServiceImpl.class",
 
                 "gradle70SourcesJar/gradle70res.txt",
                 "gradle70SourcesJar/org/test/Gradle70Helper.kt",
                 "gradle70SourcesJar/org/test/MyPluginServiceImpl.kt",
 
-                "gradle813Jar/META-INF/gradle-plugins/org.test.myPlugin.properties",
-                "gradle813Jar/META-INF/services/org.test.MyPluginService",
                 "gradle813Jar/gradle813res.txt",
                 "gradle813Jar/org/test/Gradle813Helper.class",
-                "gradle813Jar/org/test/MyPlugin.class",
-                "gradle813Jar/org/test/MyPluginService.class",
                 "gradle813Jar/org/test/MyPluginServiceImpl\$onBuildFinished$\$inlined\$the$1.class",
                 "gradle813Jar/org/test/MyPluginServiceImpl\$onBuildFinished$\$inlined\$the$2.class",
                 "gradle813Jar/org/test/MyPluginServiceImpl.class",
@@ -106,12 +97,8 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
                 "gradle813SourcesJar/org/test/Gradle813Helper.kt",
                 "gradle813SourcesJar/org/test/MyPluginServiceImpl.kt",
 
-                "gradle81Jar/META-INF/gradle-plugins/org.test.myPlugin.properties",
-                "gradle81Jar/META-INF/services/org.test.MyPluginService",
                 "gradle81Jar/gradle81res.txt",
                 "gradle81Jar/org/test/Gradle81Helper.class",
-                "gradle81Jar/org/test/MyPlugin.class",
-                "gradle81Jar/org/test/MyPluginService.class",
                 "gradle81Jar/org/test/MyPluginServiceImpl\$DummyAction.class",
                 "gradle81Jar/org/test/MyPluginServiceImpl\$onBuildFinished$\$inlined\$the$1.class",
                 "gradle81Jar/org/test/MyPluginServiceImpl.class",

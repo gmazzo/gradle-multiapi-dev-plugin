@@ -1,52 +1,67 @@
 package io.github.gmazzo.gradle.multiapi
 
+import io.github.gmazzo.gradle.multiapi.GradleMultiAPIPluginDevelopmentPlugin.Companion.MIN_GRADLE_VERSION
+import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
-import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.kotlin.dsl.newInstance
+import org.gradle.kotlin.dsl.setProperty
 import org.gradle.util.GradleVersion
 import javax.inject.Inject
 
 internal abstract class GradleMultiAPIPluginDevelopmentExtensionImpl @Inject constructor(
-    private val objects: ObjectFactory,
     project: Project,
-    private val minGradleVersion: GradleVersion,
-) : GradleMultiAPIPluginDevelopmentExtension() {
+    private val objects: ObjectFactory,
+) : GradleMultiAPIPluginDevelopmentExtension {
 
     private val maxGradleVersion = GradleVersion.current()
 
     private val logger = project.logger
 
-    abstract val providers: MapProperty<GradleVersion, GradleAPIClasspathProvider>
+    override val targetAPIs: NamedDomainObjectContainer<GradleAPITarget> =
+        objects.domainObjectContainer(GradleAPITarget::class.java, ::createProvider)
 
-    abstract val minGradleAPI: Property<GradleAPIClasspathProvider>
+    abstract override val minGradleAPI: Property<GradleAPITarget>
 
     init {
+        val allLockable = objects.setProperty<GradleAPITarget>()
+
         targetAPIs.all {
-            check(this >= minGradleVersion && this <= maxGradleVersion) {
-                "Target Gradle API $this must be in between $minGradleVersion and $maxGradleVersion"
+            check(gradleVersion >= MIN_GRADLE_VERSION && gradleVersion <= maxGradleVersion) {
+                "Target Gradle API $gradleVersion must be in between $MIN_GRADLE_VERSION and $maxGradleVersion"
             }
-
-            providers.put(this, objects.newInstance<GradleAPIClasspathProvider>(this))
+            allLockable.add(this)
         }
-        providers.finalizeValueOnRead()
 
-        minGradleAPI.value(providers.map { it.computeMin() })
+        allLockable.finalizeValueOnRead()
+        minGradleAPI.value(allLockable.map(::computeMin))
         minGradleAPI.finalizeValueOnRead()
     }
 
-    private fun Map<GradleVersion, GradleAPIClasspathProvider>.computeMin(): GradleAPIClasspathProvider {
-        if (size < 2) {
+    private fun createProvider(version: String) =
+        objects.newInstance<GradleAPIClasspathProvider>(version)
+
+    private fun computeMin(all: Set<GradleAPITarget>): GradleAPITarget {
+        if (all.size < 2) {
             logger.error("At at least 2 target Gradle API versions must be declared at `gradlePlugins.apiTargets`")
         }
-        return minByOrNull { it.key }?.value ?: objects.newInstance(GradleVersion.current())
+        return all.minBy { it.gradleVersion }
     }
 
-    // for Groovy DSL
-    fun call(vararg args: String) = invoke(*args)
+    override operator fun invoke(gradleVersion: String): GradleAPITarget =
+        targetAPIs.maybeCreate(gradleVersion)
 
-    // for Groovy DSL
-    fun call(vararg args: GradleVersion) = invoke(*args)
+    override operator fun invoke(vararg gradleVersions: String) =
+        invoke(gradleVersions.asList())
+
+    override operator fun invoke(gradleVersions: Iterable<String>) =
+        gradleVersions.map(::invoke)
+
+
+    // Groovy DSL support
+    fun call(targetAPI: String) = invoke(targetAPI)
+    fun call(vararg targetAPIs: String) = invoke(*targetAPIs)
+    fun call(targetAPIs: Iterable<String>) = invoke(targetAPIs)
 
 }

@@ -1,34 +1,66 @@
+@file:Suppress("UnstableApiUsage")
+
 package io.github.gmazzo.gradle.multiapi
 
+import org.gradle.api.Named
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
 import org.gradle.api.internal.file.FileCollectionFactory
 import org.gradle.api.internal.file.collections.MinimalFileSet
 import org.gradle.api.internal.file.temp.TemporaryFileProvider
+import org.gradle.api.invocation.Gradle
+import org.gradle.api.model.ObjectFactory
+import org.gradle.api.plugins.jvm.JvmTestSuite
+import org.gradle.api.tasks.SourceSet
+import org.gradle.api.tasks.SourceSetContainer
+import org.gradle.kotlin.dsl.maybeCreate
+import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.provideDelegate
+import org.gradle.kotlin.dsl.the
+import org.gradle.testing.base.TestingExtension
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.util.GradleVersion
 import java.io.File
 import javax.inject.Inject
 
 internal abstract class GradleAPIClasspathProvider @Inject constructor(
+    name: String,
+    objects: ObjectFactory,
+    gradle: Gradle,
     project: Project,
+    sourceSets: SourceSetContainer,
     private val fileCollectionFactory: FileCollectionFactory,
     private val temporaryFileProvider: TemporaryFileProvider,
-    private val gradleVersion: GradleVersion,
-) {
-
-    private val gradle = project.gradle
+) : GradleAPITarget, Named by objects.named(name) {
 
     private val logger = project.logger
 
+    private val forceRebuild = gradle.startParameter.isRerunTasks
+
+    private val gradleUserHomeDir = gradle.gradleUserHomeDir
+
     private val workDirs by lazy { extractAPIs() }
 
-    val api = createCollection("Gradle ${gradleVersion.version} API files") { workDirs.first }
+    override val featureName =
+        "gradle${name.replace("\\W".toRegex(), "")}"
 
-    val testKit = createCollection("Gradle ${gradleVersion.version} TestKit files") { workDirs.second }
+    override val gradleVersion: GradleVersion =
+        GradleVersion.version(name)
 
-    val kotlinDSL = createCollection("Gradle ${gradleVersion.version} Kotlin DSL files") { workDirs.third }
+    override val gradleApi =
+        createCollection("Gradle ${gradleVersion.version} API files") { workDirs.first }
+
+    override val gradleTestKit =
+        createCollection("Gradle ${gradleVersion.version} TestKit files") { workDirs.second }
+
+    override val gradleKotlinDsl =
+        createCollection("Gradle ${gradleVersion.version} Kotlin DSL files") { workDirs.third }
+
+    override val sourceSet: SourceSet =
+        sourceSets.maybeCreate(featureName)
+
+    override val testSuite =
+        project.the<TestingExtension>().suites.maybeCreate<JvmTestSuite>("${featureName}Test")
 
     private fun extractAPIs(): Triple<File, File, File> {
         val workDir = temporaryFileProvider.newTemporaryDirectory("gradle-api-classpath")
@@ -37,10 +69,11 @@ internal abstract class GradleAPIClasspathProvider @Inject constructor(
         val kotlinDslFile = workDir.resolve("gradle-kotlin-dsl-${gradleVersion.version}.txt")
         val result = Triple(apiFile, testKitFile, kotlinDslFile)
 
-        if (!gradle.startParameter.isRerunTasks &&
+        if (!forceRebuild &&
             apiFile.isValidClasspath &&
             testKitFile.isValidClasspath &&
-            kotlinDslFile.isValidClasspath) {
+            kotlinDslFile.isValidClasspath
+        ) {
             return result
         }
 
@@ -64,7 +97,7 @@ internal abstract class GradleAPIClasspathProvider @Inject constructor(
 
         GradleRunner.create()
             .withProjectDir(projectDir)
-            .withTestKitDir(gradle.gradleUserHomeDir)
+            .withTestKitDir(gradleUserHomeDir)
             .withGradleVersion(gradleVersion.version)
             .withArguments("-m")
             .forwardStdOutput(projectDir.resolve("stdout.txt").writer())

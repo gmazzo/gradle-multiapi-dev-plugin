@@ -2,15 +2,12 @@ package org.test
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.internal.service.ServiceLocator
 import org.gradle.kotlin.dsl.apply
-import javax.inject.Inject
+import java.util.*
 
-class MyPlugin @Inject constructor(
-    serviceLocator: ServiceLocator,
-) : Plugin<Project> {
+class MyPlugin : Plugin<Project> {
 
-    val service: MyPluginService = serviceLocator.get(MyPluginService::class.java)
+    val service: MyPluginService = ServiceLoader.load(MyPluginService::class.java).single()
 
     override fun apply(target: Project) = with(service) {
         println("Target Gradle version: ${service.targetGradleVersion}")

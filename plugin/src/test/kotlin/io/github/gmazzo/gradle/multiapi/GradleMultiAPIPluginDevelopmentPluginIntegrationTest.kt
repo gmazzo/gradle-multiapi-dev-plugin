@@ -29,6 +29,8 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
                     }
                 }
                 
+                rootProject.name = "myPlugin"
+                
                 """.trimIndent()
             )
         }
@@ -162,6 +164,8 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
     }
 
     private fun publishToLocalRepo() = tempDir.resolve("local-repo").also { localRepoDir ->
+        localRepoDir.deleteRecursively()
+
         projectDir.resolve("build.gradle").appendText(
             """
             apply(plugin: 'maven-publish')

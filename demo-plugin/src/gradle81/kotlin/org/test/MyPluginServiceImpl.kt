@@ -25,6 +25,11 @@ class MyPluginServiceImpl : MyPluginService {
         }
     }
 
-    interface DummyAction : FlowAction<FlowParameters.None>
+    abstract class DummyAction : FlowAction<FlowParameters.None> {
+
+        override fun execute(parameters: FlowParameters.None) {
+        }
+
+    }
 
 }

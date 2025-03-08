@@ -33,7 +33,7 @@ For each declared, a dedicated `gradle<version>` source will be created (with a 
 > `main` and `test` source sets will act as common shared code for all variants.
 
 > [!IMPORTANT]
-> The plugin will automatically configure the `gradleApi()` and `gradleTestkit()` with the right target version on each source
+> The plugin will automatically configure the `gradleApi()` and `gradleTestkit()` with the right target version on each source.
 > Do not declare them manually (as you usually will do) since will may breck the classpath.
 > 
 > When `kotlin` plugin is applied, also `gradleKotlinDsl()` will be configured.

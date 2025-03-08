@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.gradle.pluginPublish)
     alias(libs.plugins.jacoco.testkit)
     alias(libs.plugins.publicationsReport)
+    signing
     groovy
 }
 
@@ -40,6 +41,15 @@ dependencies {
 
     testImplementation(gradleKotlinDsl())
     testImplementation(gradleTestKit())
+}
+
+signing {
+    val signingKey: String? by project
+    val signingPassword: String? by project
+
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    publishing.publications.configureEach(::sign)
+    tasks.withType<Sign>().configureEach { enabled = signingKey != null }
 }
 
 testing.suites.withType<JvmTestSuite> {

@@ -140,6 +140,12 @@ class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
                 }
             }
 
+            testSuite.targets.all {
+                testTask.configure {
+                    testClassesDirs += test.output.classesDirs
+                }
+            }
+
             tasks.named(TEST_TASK_NAME) {
                 dependsOn(testSuite)
             }

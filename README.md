@@ -1,6 +1,7 @@
 ![GitHub](https://img.shields.io/github/license/gmazzo/gradle-multiapi-dev-plugin)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.gmazzo.gradle.multiapi/io.github.gmazzo.gradle.multiapi.gradle.plugin)](https://central.sonatype.com/artifact/io.github.gmazzo.gradle.multiapi/io.github.gmazzo.gradle.multiapi.gradle.plugin)
 [![Gradle Plugin Portal](https://img.shields.io/gradle-plugin-portal/v/io.github.gmazzo.gradle.multiapi)](https://plugins.gradle.org/plugin/io.github.gmazzo.gradle.multiapi)
-[![Build Status](https://github.com/gmazzo/gradle-multiapi-dev-plugin/actions/workflows/build.yaml/badge.svg)](https://github.com/gmazzo/gradle-multiapi-dev-plugin/actions/workflows/build.yaml)
+[![Build Status](https://github.com/gmazzo/gradle-multiapi-dev-plugin/actions/workflows/ci-cd.yaml/badge.svg)](https://github.com/gmazzo/gradle-multiapi-dev-plugin/actions/workflows/ci-cd.yaml)
 [![Coverage](https://codecov.io/gh/gmazzo/gradle-multiapi-dev-plugin/branch/main/graph/badge.svg?token=D5cDiPWvcS)](https://codecov.io/gh/gmazzo/gradle-multiapi-dev-plugin)
 [![Users](https://img.shields.io/badge/users_by-Sourcegraph-purple)](https://sourcegraph.com/search?q=content:io.github.gmazzo.gradle.multiapi+-repo:github.com/gmazzo/gradle-multiapi-dev-plugin)
 

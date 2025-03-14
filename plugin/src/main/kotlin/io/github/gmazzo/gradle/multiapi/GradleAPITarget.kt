@@ -22,6 +22,6 @@ interface GradleAPITarget : Named {
 
     val sourceSet: SourceSet
 
-    val testSuite : JvmTestSuite
+    val testSuite: JvmTestSuite
 
 }

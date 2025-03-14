@@ -1,6 +1,7 @@
 package io.github.gmazzo.gradle.multiapi
 
 import io.github.gmazzo.gradle.multiapi.GradleMultiAPIPluginDevelopmentPlugin.Companion.MIN_GRADLE_VERSION
+import javax.inject.Inject
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
@@ -8,7 +9,6 @@ import org.gradle.api.provider.Property
 import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.setProperty
 import org.gradle.util.GradleVersion
-import javax.inject.Inject
 
 internal abstract class GradleMultiAPIPluginDevelopmentExtensionImpl @Inject constructor(
     project: Project,

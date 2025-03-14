@@ -1,12 +1,12 @@
 package io.github.gmazzo.gradle.multiapi
 
+import java.io.File
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import java.io.File
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
@@ -28,9 +28,9 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
                         mavenCentral()
                     }
                 }
-                
+
                 rootProject.name = "myPlugin"
-                
+
                 """.trimIndent()
             )
         }
@@ -46,7 +46,7 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
                 plugins {
                     id("jacoco-testkit-coverage")
                 }
-                
+
                 """.trimIndent() + readText()
             )
         }
@@ -56,7 +56,7 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
             def jars = copySpec()
             tasks.withType(Jar) { task ->
                 jars.from(zipTree(task.archiveFile)) {
-                    into(task.name) 
+                    into(task.name)
                 }
             }
             tasks.register("collectJarsContent", Copy) {
@@ -64,7 +64,7 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
                 exclude("**/META-INF/MANIFEST.MF", "**/META-INF/*.kotlin_module")
                 into("$jarsContentDir")
             }
-            
+
             """.trimIndent()
         )
 
@@ -81,7 +81,8 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
             .toSortedSet()
 
         assertEquals(
-            sortedSetOf("gradle70Jar/gradle70res.txt",
+            sortedSetOf(
+                "gradle70Jar/gradle70res.txt",
                 "gradle70Jar/org/test/Gradle70Helper.class",
                 "gradle70Jar/org/test/MyPluginServiceImpl.class",
 
@@ -135,16 +136,18 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
         val localRepoDir = publishToLocalRepo()
         val projectDir = projectDir.resolve("consumer-project").apply { deleteRecursively(); mkdirs() }
 
-        projectDir.resolve("settings.gradle").writeText("""
+        projectDir.resolve("settings.gradle").writeText(
+            """
             pluginManagement {
                 repositories {
                     gradlePluginPortal()
                     maven { url = uri("$localRepoDir") }
                 }
             }
-            
+
             rootProject.name = "consumer-project"
-            """.trimIndent())
+            """.trimIndent()
+        )
 
         projectDir.resolve("build.gradle").writeText(
             """
@@ -169,14 +172,14 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
         projectDir.resolve("build.gradle").appendText(
             """
             apply(plugin: 'maven-publish')
-            
+
             publishing.repositories {
                 maven {
                     name = 'local'
                     url = uri(file("$localRepoDir"))
                 }
             }
-            
+
             """.trimIndent()
         )
 

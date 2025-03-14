@@ -2,6 +2,8 @@
 
 package io.github.gmazzo.gradle.multiapi
 
+import java.io.File
+import javax.inject.Inject
 import org.gradle.api.Named
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
@@ -20,8 +22,6 @@ import org.gradle.kotlin.dsl.the
 import org.gradle.testing.base.TestingExtension
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.util.GradleVersion
-import java.io.File
-import javax.inject.Inject
 
 internal abstract class GradleAPIClasspathProvider @Inject constructor(
     name: String,
@@ -88,7 +88,7 @@ internal abstract class GradleAPIClasspathProvider @Inject constructor(
             """
             fun File.writeClasspath(source: Dependency) =
                 writeText(configurations.detachedConfiguration(source).files.joinToString("\n"))
-                
+
             file("$apiFile").writeClasspath(dependencies.gradleApi())
             file("$testKitFile").writeClasspath(dependencies.gradleTestKit())
             file("$kotlinDslFile").writeClasspath(gradleKotlinDsl())

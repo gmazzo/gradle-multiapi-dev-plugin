@@ -1,10 +1,3 @@
-pluginManagement {
-    repositories {
-        gradlePluginPortal()
-        mavenLocal()
-    }
-}
-
 dependencyResolutionManagement {
     versionCatalogs {
         create("libs") {

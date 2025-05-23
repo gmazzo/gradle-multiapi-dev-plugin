@@ -126,7 +126,7 @@ class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
                 }
 
             dependencies {
-                sourceSet.apiConfigurationName(gradleApi)
+                sourceSet.compileOnlyConfigurationName(gradleApi)
                 sourceSet.apiConfigurationName(commonFeature)
 
                 testSuite.sources.implementationConfigurationName(gradleTestKit)
@@ -164,12 +164,11 @@ class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
     }
 
     private fun Project.createExtension() =
-        (the<GradlePluginDevelopmentExtension>() as ExtensionAware).extensions
-            .create<GradleMultiAPIPluginDevelopmentExtension>(
-                GradleMultiAPIPluginDevelopmentExtension::class,
-                "apiTargets",
-                GradleMultiAPIPluginDevelopmentExtensionImpl::class,
-            )
+        (the<GradlePluginDevelopmentExtension>() as ExtensionAware).extensions.create(
+            GradleMultiAPIPluginDevelopmentExtension::class,
+            "apiTargets",
+            GradleMultiAPIPluginDevelopmentExtensionImpl::class,
+        )
 
     private fun Project.removeRunningGradleAPIFromMain(main: SourceSet, test: SourceSet) = afterEvaluate {
         configurations.getByName(main.apiConfigurationName)

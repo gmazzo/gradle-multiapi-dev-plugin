@@ -5,6 +5,8 @@
 [![Coverage](https://codecov.io/gh/gmazzo/gradle-multiapi-dev-plugin/branch/main/graph/badge.svg?token=D5cDiPWvcS)](https://codecov.io/gh/gmazzo/gradle-multiapi-dev-plugin)
 [![Users](https://img.shields.io/badge/users_by-Sourcegraph-purple)](https://sourcegraph.com/search?q=content:io.github.gmazzo.gradle.multiapi+-repo:github.com/gmazzo/gradle-multiapi-dev-plugin)
 
+[![Contributors](https://contrib.rocks/image?repo=gmazzo/gradle-multiapi-dev-plugin)](https://github.com/gmazzo/gradle-multiapi-dev-plugin/graphs/contributors)
+
 # gradle-multiapi-dev-plugin
 
 A Gradle plugin allows targeting multiple `gradleApi()`s versions by

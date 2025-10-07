@@ -11,10 +11,11 @@ version = "0.1.0"
 samWithReceiver.annotation(HasImplicitReceiver::class.java.name)
 
 gradlePlugin {
-    website = "http://example.org"
-    vcsUrl = "http://example.org/repo"
+    website = "https://example.org"
+    vcsUrl = "https://example.org/repo"
 
     apiTargets("7.0", "8.1", "8.13")
+    apiTargets.projectCache()
 
     plugins {
         create("myPlugin") {

@@ -8,7 +8,7 @@ plugins {
 group = "org.test"
 version = "0.1.0"
 
-samWithReceiver.annotation(HasImplicitReceiver.class.name)
+samWithReceiver.annotation(HasImplicitReceiver::class.java.name)
 
 gradlePlugin {
     website = "http://example.org"
@@ -22,12 +22,12 @@ gradlePlugin {
             displayName = "My Plugin"
             description = "My Plugin Description"
             implementationClass = "org.test.MyPlugin"
-            tags = ["tag1", "tag2"]
+            tags = listOf("tag1", "tag2")
         }
     }
 }
 
-testing.suites.withType(JvmTestSuite) {
+testing.suites.withType<JvmTestSuite>().configureEach {
     useJUnitJupiter()
 }
 

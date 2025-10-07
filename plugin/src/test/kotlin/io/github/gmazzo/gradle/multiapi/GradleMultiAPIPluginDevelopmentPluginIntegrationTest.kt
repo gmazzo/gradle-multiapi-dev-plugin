@@ -1,7 +1,9 @@
 package io.github.gmazzo.gradle.multiapi
 
+import io.github.gmazzo.gradle.multiapi.GradleMultiAPIPluginDevelopmentPlugin.Companion.MIN_GRADLE_VERSION
 import java.io.File
 import org.gradle.testkit.runner.GradleRunner
+import org.gradle.util.GradleVersion
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -21,7 +23,7 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
             File("../gradle/libs.versions.toml").copyTo(resolve("gradle/libs.versions.toml"))
             File("../demo-plugin").copyRecursively(this)
 
-            resolve("settings.gradle").writeText(
+            resolve("settings.gradle.kts").writeText(
                 """
                 dependencyResolutionManagement {
                     repositories {
@@ -40,7 +42,7 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
     fun `demo project produces expected jars`() {
         val jarsContentDir = projectDir.resolve("build/jars-content")
 
-        projectDir.resolve("settings.gradle").apply {
+        projectDir.resolve("settings.gradle.kts").apply {
             writeText(
                 """
                 plugins {
@@ -51,15 +53,15 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
             )
         }
 
-        projectDir.resolve("build.gradle").appendText(
+        projectDir.resolve("build.gradle.kts").appendText(
             """
-            def jars = copySpec()
-            tasks.withType(Jar) { task ->
-                jars.from(zipTree(task.archiveFile)) {
-                    into(task.name)
+            val jars = copySpec()
+            tasks.withType<Jar> task@{
+                jars.from(zipTree(this@task.archiveFile)) {
+                    into(this@task.name)
                 }
             }
-            tasks.register("collectJarsContent", Copy) {
+            tasks.register<Copy>("collectJarsContent") {
                 with(jars)
                 exclude("**/META-INF/MANIFEST.MF", "**/META-INF/*.kotlin_module")
                 into("$jarsContentDir")
@@ -128,7 +130,7 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
         .listFiles { it.isDirectory }
         .mapNotNull { "gradle(\\d)(\\d+)".toRegex().matchEntire(it.name)?.groupValues }
         .map { (_, major, minor) -> "$major.$minor" }
-        .toList()
+        .union(listOf(MIN_GRADLE_VERSION.version, GradleVersion.current().version))
 
     @ParameterizedTest
     @MethodSource("gradleVersions")
@@ -136,7 +138,7 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
         val localRepoDir = publishToLocalRepo()
         val projectDir = projectDir.resolve("consumer-project").apply { deleteRecursively(); mkdirs() }
 
-        projectDir.resolve("settings.gradle").writeText(
+        projectDir.resolve("settings.gradle.kts").writeText(
             """
             pluginManagement {
                 repositories {
@@ -149,11 +151,11 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
             """.trimIndent()
         )
 
-        projectDir.resolve("build.gradle").writeText(
+        projectDir.resolve("build.gradle.kts").writeText(
             """
             plugins {
-                id 'java-gradle-plugin'
-                id 'org.test.myPlugin' version '+'
+                id("java-gradle-plugin")
+                id("org.test.myPlugin") version "+"
             }
             """.trimIndent()
         )
@@ -169,13 +171,13 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
     private fun publishToLocalRepo() = tempDir.resolve("local-repo").also { localRepoDir ->
         localRepoDir.deleteRecursively()
 
-        projectDir.resolve("build.gradle").appendText(
+        projectDir.resolve("build.gradle.kts").appendText(
             """
-            apply(plugin: 'maven-publish')
+            apply(plugin = "maven-publish")
 
             publishing.repositories {
                 maven {
-                    name = 'local'
+                    name = "local"
                     url = uri(file("$localRepoDir"))
                 }
             }

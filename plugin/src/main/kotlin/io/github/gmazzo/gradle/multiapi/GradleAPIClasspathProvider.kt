@@ -9,10 +9,10 @@ import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
 import org.gradle.api.internal.file.FileCollectionFactory
 import org.gradle.api.internal.file.collections.MinimalFileSet
-import org.gradle.api.internal.file.temp.TemporaryFileProvider
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.jvm.JvmTestSuite
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.kotlin.dsl.maybeCreate
@@ -30,14 +30,13 @@ internal abstract class GradleAPIClasspathProvider @Inject constructor(
     project: Project,
     sourceSets: SourceSetContainer,
     private val fileCollectionFactory: FileCollectionFactory,
-    private val temporaryFileProvider: TemporaryFileProvider,
+    private val workDirectory: File,
+    private val gradleUserHomeForCache: Provider<File>,
 ) : GradleAPITarget, Named by objects.named(name) {
 
     private val logger = project.logger
 
     private val forceRebuild = gradle.startParameter.isRerunTasks
-
-    private val gradleUserHomeDir = gradle.gradleUserHomeDir
 
     private val workDirs by lazy { extractAPIs() }
 
@@ -63,10 +62,10 @@ internal abstract class GradleAPIClasspathProvider @Inject constructor(
         project.the<TestingExtension>().suites.maybeCreate<JvmTestSuite>("${featureName}Test")
 
     private fun extractAPIs(): Triple<File, File, File> {
-        val workDir = temporaryFileProvider.newTemporaryDirectory("gradle-api-classpath")
-        val apiFile = workDir.resolve("gradle-api-${gradleVersion.version}.txt")
-        val testKitFile = workDir.resolve("gradle-test-kit-${gradleVersion.version}.txt")
-        val kotlinDslFile = workDir.resolve("gradle-kotlin-dsl-${gradleVersion.version}.txt")
+        val workDir = workDirectory.resolve("gradle-api-classpath/$name").apply { deleteRecursively(); mkdirs() }
+        val apiFile = workDir.resolve("gradle-api-$name.txt")
+        val testKitFile = workDir.resolve("gradle-test-kit-$name.txt")
+        val kotlinDslFile = workDir.resolve("gradle-kotlin-dsl-$name.txt")
         val result = Triple(apiFile, testKitFile, kotlinDslFile)
 
         if (!forceRebuild &&
@@ -79,7 +78,7 @@ internal abstract class GradleAPIClasspathProvider @Inject constructor(
 
         logger.lifecycle("Extracting Gradle ${gradleVersion.version} API")
 
-        val projectDir = workDir.resolve("work${gradleVersion.version}")
+        val projectDir = workDir.resolve("project")
         projectDir.deleteRecursively()
         projectDir.mkdirs()
 
@@ -97,7 +96,7 @@ internal abstract class GradleAPIClasspathProvider @Inject constructor(
 
         GradleRunner.create()
             .withProjectDir(projectDir)
-            .withTestKitDir(gradleUserHomeDir)
+            .apply { gradleUserHomeForCache.orNull?.let(::withTestKitDir) }
             .withGradleVersion(gradleVersion.version)
             .withArguments("-m")
             .forwardStdOutput(projectDir.resolve("stdout.txt").writer())

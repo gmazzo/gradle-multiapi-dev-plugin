@@ -128,3 +128,19 @@ class GradleAPIAdapterImpl : GradleAPIAdapter {
 > [!NOTE]
 > This is a working example on
 > my [Android Test Aggregation plugin](https://github.com/gmazzo/gradle-android-test-aggregation-plugin/blob/main/plugin/src/main/kotlin/io/github/gmazzo/android/test/aggregation/GradleAPIAdapter.kt)
+
+## Gradle Distributions caching
+By default, this plugin will feed from Gradle user's home directory when looking for distributions.
+This allows saving build and configuration time, by reusing already downloaded distributions.
+
+You can customize this behavior by using any of the provided APIs or passing a custom location for Gradle to cache content:
+```kotlin
+
+gradlePlugin {
+    apiTargets("7.0", "8.1", "8.13")
+
+    apiTargets.sharedCache() // default, will use `~/.gradle/` directory
+    apiTargets.projectCache() // will use `buildDir/multiapi/cache` directory
+    apiTargets.sharedCacheDir = file("myFolder") // custom location
+}
+```

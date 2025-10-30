@@ -10,7 +10,7 @@
 # gradle-multiapi-dev-plugin
 
 A Gradle plugin allows targeting multiple `gradleApi()`s versions by
-leveraging [Java Plugin's Variant Features](https://docs.gradle.org/current/userguide/feature_variants.html).
+leveraging [Java Plugin's Variant Features](https://docs.gradle.org/current/userguide/how_to_create_feature_variants_of_a_library.html).
 
 # Usage
 

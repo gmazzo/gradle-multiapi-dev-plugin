@@ -34,7 +34,7 @@ import org.gradle.plugin.devel.GradlePluginDevelopmentExtension
 import org.gradle.plugin.devel.tasks.PluginUnderTestMetadata
 import org.gradle.util.GradleVersion
 
-class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
+public class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
 
     internal companion object {
         val MIN_GRADLE_VERSION: GradleVersion = GradleVersion.version("7.0")

@@ -12,6 +12,8 @@
 A Gradle plugin allows targeting multiple `gradleApi()`s versions by
 leveraging [Java Plugin's Variant Features](https://docs.gradle.org/current/userguide/how_to_create_feature_variants_of_a_library.html).
 
+See [Providing multiple variants of a plugin for different Gradle versions](https://docs.gradle.org/7.0/userguide/implementing_gradle_plugins.html#plugin-with-variants).
+
 # Usage
 
 Apply the plugin at your `java-gradle-plugin` project:

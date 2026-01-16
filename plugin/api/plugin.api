@@ -1,8 +1,8 @@
 public abstract interface class io/github/gmazzo/gradle/multiapi/GradleAPITarget : org/gradle/api/Named {
 	public abstract fun getFeatureName ()Ljava/lang/String;
-	public abstract fun getGradleApi ()Lorg/gradle/api/file/FileCollection;
-	public abstract fun getGradleKotlinDsl ()Lorg/gradle/api/file/FileCollection;
-	public abstract fun getGradleTestKit ()Lorg/gradle/api/file/FileCollection;
+	public abstract fun getGradleApi ()Lorg/gradle/api/artifacts/Dependency;
+	public abstract fun getGradleKotlinDsl ()Lorg/gradle/api/artifacts/Dependency;
+	public abstract fun getGradleTestKit ()Lorg/gradle/api/artifacts/Dependency;
 	public abstract fun getGradleVersion ()Lorg/gradle/util/GradleVersion;
 	public abstract fun getSourceSet ()Lorg/gradle/api/tasks/SourceSet;
 	public abstract fun getTestSuite ()Lorg/gradle/api/plugins/jvm/JvmTestSuite;

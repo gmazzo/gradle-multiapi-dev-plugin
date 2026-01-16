@@ -3,6 +3,7 @@
 package io.github.gmazzo.gradle.multiapi
 
 import org.gradle.api.Named
+import org.gradle.api.artifacts.Dependency
 import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.jvm.JvmTestSuite
 import org.gradle.api.tasks.SourceSet
@@ -14,11 +15,11 @@ public interface GradleAPITarget : Named {
 
     public val gradleVersion: GradleVersion
 
-    public val gradleApi: FileCollection
+    public val gradleApi: Dependency
 
-    public val gradleTestKit: FileCollection
+    public val gradleTestKit: Dependency
 
-    public val gradleKotlinDsl: FileCollection
+    public val gradleKotlinDsl: Dependency
 
     public val sourceSet: SourceSet
 

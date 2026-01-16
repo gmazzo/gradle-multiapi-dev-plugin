@@ -6,6 +6,8 @@ import java.io.File
 import javax.inject.Inject
 import org.gradle.api.Named
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.dsl.Dependencies
 import org.gradle.api.file.FileCollection
 import org.gradle.api.internal.file.FileCollectionFactory
 import org.gradle.api.internal.file.collections.MinimalFileSet
@@ -36,6 +38,8 @@ internal abstract class GradleAPIClasspathProvider @Inject constructor(
 
     private val logger = project.logger
 
+    private val dependencies = project.dependencies
+
     private val forceRebuild = gradle.startParameter.isRerunTasks
 
     private val workDirs by lazy { extractAPIs() }
@@ -47,13 +51,13 @@ internal abstract class GradleAPIClasspathProvider @Inject constructor(
         GradleVersion.version(name)
 
     override val gradleApi =
-        createCollection("Gradle ${gradleVersion.version} API files") { workDirs.first }
+        createDependency("Gradle ${gradleVersion.version} API files") { workDirs.first }
 
     override val gradleTestKit =
-        createCollection("Gradle ${gradleVersion.version} TestKit files") { workDirs.second }
+        createDependency("Gradle ${gradleVersion.version} TestKit files") { workDirs.second }
 
     override val gradleKotlinDsl =
-        createCollection("Gradle ${gradleVersion.version} Kotlin DSL files") { workDirs.third }
+        createDependency("Gradle ${gradleVersion.version} Kotlin DSL files") { workDirs.third }
 
     override val sourceSet: SourceSet =
         sourceSets.maybeCreate(featureName)
@@ -108,8 +112,8 @@ internal abstract class GradleAPIClasspathProvider @Inject constructor(
         return result
     }
 
-    private fun createCollection(displayName: String, classpathFile: () -> File): FileCollection =
-        fileCollectionFactory.create(GradleClasspath(displayName, classpathFile))
+    private fun createDependency(displayName: String, classpathFile: () -> File): Dependency =
+        dependencies.create(fileCollectionFactory.create(GradleClasspath(displayName, classpathFile)))
 
     private val File.isValidClasspath
         get() = isFile && useLines { lines -> lines.all { File(it).isFile } }

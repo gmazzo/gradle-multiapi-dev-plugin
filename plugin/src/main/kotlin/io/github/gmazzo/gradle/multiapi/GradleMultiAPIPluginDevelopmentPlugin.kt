@@ -2,10 +2,14 @@
 
 package io.github.gmazzo.gradle.multiapi
 
+import kotlin.reflect.KFunction
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationPublications
+import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.FileCollectionDependency
+import org.gradle.api.internal.artifacts.dependencies.SelfResolvingDependencyInternal
 import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.attributes.Usage.JAVA_API
 import org.gradle.api.attributes.Usage.JAVA_RUNTIME
@@ -171,10 +175,18 @@ public class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
         )
 
     private fun Project.removeRunningGradleAPIFromMain(main: SourceSet, test: SourceSet) = afterEvaluate {
-        configurations.getByName(main.apiConfigurationName)
-            .dependencies.remove(dependencies.gradleApi())
-        configurations.getByName(test.implementationConfigurationName)
-            .dependencies.remove(dependencies.gradleTestKit())
+        removeDependency(dependencies::gradleApi, main.apiConfigurationName, test.implementationConfigurationName)
+        removeDependency(dependencies::gradleTestKit, test.implementationConfigurationName)
+    }
+
+    private fun Project.removeDependency(dependency: KFunction<Dependency>, vararg configurationNames: String) = afterEvaluate {
+        val removed = configurationNames.fold(false) { acc, it ->
+            acc or configurations.getByName(it).dependencies.remove(dependency.call())
+        }
+
+        if (!removed) {
+            logger.warn("Could not remove '${dependency.name}' from ${configurationNames.joinToString(", ") { "'$it'" }}. This may cause issues if it was added by the java-gradle-plugin, but you can ignore this warning if you added it manually.")
+        }
     }
 
     private fun Project.addMinGradleAPIToMain(

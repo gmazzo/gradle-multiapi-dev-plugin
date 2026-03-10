@@ -28,7 +28,6 @@ import org.gradle.util.GradleVersion
 internal abstract class GradleAPIClasspathProvider @Inject constructor(
     name: String,
     objects: ObjectFactory,
-    gradle: Gradle,
     project: Project,
     sourceSets: SourceSetContainer,
     private val fileCollectionFactory: FileCollectionFactory,
@@ -40,7 +39,7 @@ internal abstract class GradleAPIClasspathProvider @Inject constructor(
 
     private val dependencies = project.dependencies
 
-    private val forceRebuild = gradle.startParameter.isRerunTasks
+    private val forceRebuild = project.gradle.startParameter.isRerunTasks
 
     private val workDirs by lazy { extractAPIs() }
 

@@ -55,8 +55,8 @@ public class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
 
         val sourceSets = the<SourceSetContainer>()
 
-        val main by sourceSets
-        val test by sourceSets
+        val main = sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
+        val test = sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME)
 
         val java = the<JavaPluginExtension>()
         java.withSourcesJar()
@@ -203,7 +203,7 @@ public class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
         configurations.getByName(test.compileClasspathConfigurationName).extendsFrom(gradleTestApi)
 
         plugins.withId("java-test-fixtures") {
-            val testFixtures by the<SourceSetContainer>()
+            val testFixtures = the<SourceSetContainer>().getByName("testFixtures")
 
             configurations.getByName(testFixtures.compileOnlyConfigurationName).extendsFrom(gradleTestApi)
         }

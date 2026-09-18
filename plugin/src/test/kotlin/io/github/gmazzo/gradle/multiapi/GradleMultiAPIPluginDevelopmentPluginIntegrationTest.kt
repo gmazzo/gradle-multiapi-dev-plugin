@@ -87,7 +87,6 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
                 "gradle70Jar/gradle70res.txt",
                 "gradle70Jar/org/test/Gradle70Helper.class",
                 "gradle70Jar/org/test/MyPluginServiceImpl.class",
-                $$"gradle70Jar/org/test/MyPluginServiceImpl$onBuildFinished$1.class",
 
                 "gradle70SourcesJar/gradle70res.txt",
                 "gradle70SourcesJar/org/test/Gradle70Helper.kt",
@@ -95,7 +94,6 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
 
                 "gradle813Jar/gradle813res.txt",
                 "gradle813Jar/org/test/Gradle813Helper.class",
-                $$"gradle813Jar/org/test/MyPluginServiceImpl$onBuildFinished$1.class",
                 $$$"gradle813Jar/org/test/MyPluginServiceImpl$onBuildFinished$$inlined$the$1.class",
                 $$$"gradle813Jar/org/test/MyPluginServiceImpl$onBuildFinished$$inlined$the$2.class",
                 "gradle813Jar/org/test/MyPluginServiceImpl.class",
@@ -107,8 +105,6 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
                 "gradle81Jar/gradle81res.txt",
                 "gradle81Jar/org/test/Gradle81Helper.class",
                 $$"gradle81Jar/org/test/MyPluginServiceImpl$DummyAction.class",
-                $$"gradle81Jar/org/test/MyPluginServiceImpl$onBuildFinished$1.class",
-                $$"gradle81Jar/org/test/MyPluginServiceImpl$onBuildFinished$2.class",
                 $$$"gradle81Jar/org/test/MyPluginServiceImpl$onBuildFinished$$inlined$the$1.class",
                 "gradle81Jar/org/test/MyPluginServiceImpl.class",
 
@@ -131,7 +127,7 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
 
     fun gradleVersions() = projectDir
         .resolve("src")
-        .listFiles { it.isDirectory }
+        .listFiles { it.isDirectory }!!
         .mapNotNull { "gradle(\\d)(\\d+)".toRegex().matchEntire(it.name)?.groupValues }
         .map { (_, major, minor) -> "$major.$minor" }
         .union(listOf(MIN_GRADLE_VERSION.version, GradleVersion.current().version))

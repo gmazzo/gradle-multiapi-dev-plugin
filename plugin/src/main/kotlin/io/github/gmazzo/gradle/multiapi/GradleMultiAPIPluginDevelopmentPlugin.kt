@@ -66,7 +66,7 @@ public class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
         addMinGradleAPIToMain(main, test, extension)
         configureMainAsCommon(main)
 
-        val commonFeature = (dependencies.create(project) as ProjectDependency).apply {
+        val commonFeature = dependencies.project(project.path).apply {
             capabilities { requireCapability(provider { "${project.group}:${project.name}-common" }) }
         }
 
@@ -134,7 +134,7 @@ public class GradleMultiAPIPluginDevelopmentPlugin : Plugin<Project> {
                 sourceSet.apiConfigurationName(commonFeature)
 
                 testSuite.sources.implementationConfigurationName(gradleTestKit)
-                testSuite.sources.implementationConfigurationName(project)
+                testSuite.sources.implementationConfigurationName(project(project.path))
                 testSuite.sources.implementationConfigurationName(test.output)
                 testSuite.sources.runtimeOnlyConfigurationName(files(variantTestClasspathTask))
 

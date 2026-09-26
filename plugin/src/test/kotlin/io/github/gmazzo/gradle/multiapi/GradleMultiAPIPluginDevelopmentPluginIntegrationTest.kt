@@ -20,6 +20,7 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
             deleteRecursively()
             mkdirs()
 
+            File("../gradle.properties").copyTo(resolve("gradle.properties"))
             File("../gradle/libs.versions.toml").copyTo(resolve("gradle/libs.versions.toml"))
             File("../demo-plugin").copyRecursively(this)
 
@@ -73,7 +74,7 @@ class GradleMultiAPIPluginDevelopmentPluginIntegrationTest {
         GradleRunner.create()
             .withProjectDir(projectDir)
             .withPluginClasspath()
-            .withArguments("collectJarsContent", "-s")
+            .withArguments("collectJarsContent", "-s", "--no-configuration-cache", "--no-isolated-projects")
             .forwardOutput()
             .build()
 
